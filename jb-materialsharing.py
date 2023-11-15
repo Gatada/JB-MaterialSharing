@@ -15,7 +15,7 @@
 
 bl_info = {
 	"author": "Johan Basberg",
-	"version": (0, 3, 47),
+	"version": (0, 3, 48),
 	"name": "Material Sharing using JSON",
 	"blender": (2, 80, 0),
 	"category": "Material",
@@ -48,7 +48,7 @@ class JB_MATERIALSHARING_OT_save_material_json_to_file(bpy.types.Operator):
 				active_material = context.active_object.active_material
 				if active_material:
 					
-					material_json = material_to_json(active_material)
+					material_json = JB_MATERIALSHARING_OT_copy_material.material_to_json(active_material)
 					
 					if material_json:
 						# Specify an absolute path for the JSON file
@@ -98,7 +98,7 @@ class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
 		return {'FINISHED'}
 
 		
-	def material_to_json(material):
+	def material_to_json(self, material):
 		# Check if the material uses nodes
 		if material.use_nodes:
 			node_tree = material.node_tree
@@ -206,7 +206,7 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 			return {'CANCELLED'}
 			
 			
-	def create_material_from_json(context, material_data):
+	def create_material_from_json(self, context, material_data):
 		if not isinstance(material_data, dict):
 			raise ValueError("Invalid material data. Expected a dictionary.")
 			
