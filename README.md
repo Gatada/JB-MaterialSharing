@@ -1,4 +1,4 @@
-# JB-NodeSharing
+# Material Sharing
 The Blender add-on that saves and loads materials to text files as JSON for easy sharing.
 
 ## Feature Highlights
