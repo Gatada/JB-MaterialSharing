@@ -15,7 +15,7 @@
 
 bl_info = {
 	"author": "Johan Basberg",
-	"version": (0, 3, 48),
+	"version": (0, 6, 4),
 	"name": "Material Sharing using JSON",
 	"blender": (2, 80, 0),
 	"category": "Material",
@@ -25,6 +25,7 @@ bl_info = {
 
 import bpy
 import json
+import os
 from mathutils import Vector, Euler
 
 class BlenderEncoder(json.JSONEncoder):
@@ -39,7 +40,7 @@ class BlenderEncoder(json.JSONEncoder):
 
 
 class JB_MATERIALSHARING_OT_save_material_json_to_file(bpy.types.Operator):
-		bl_idname = "jb_nodesharing.save_material"
+		bl_idname = "jb_materialsharing.save_material"
 		bl_label = "Save Material"
 		bl_options = {'REGISTER', 'UNDO'}
 		
@@ -48,16 +49,20 @@ class JB_MATERIALSHARING_OT_save_material_json_to_file(bpy.types.Operator):
 				active_material = context.active_object.active_material
 				if active_material:
 					
-					material_json = JB_MATERIALSHARING_OT_copy_material.material_to_json(active_material)
+					material_json = JB_MATERIALSHARING_OT_copy_material.material_to_json(self, active_material)
+					save_folder = context.scene.render.filepath
 					
-					if material_json:
+					if material_json and os.path.isdir(save_folder):
 						# Specify an absolute path for the JSON file
-						json_file_path = context.scene.render.filepath + active_material.name + '.json'
+						json_file_path = save_folder + active_material.name + '.json'
 					
 						# Dump the JSON data to the specified file path using the custom encoder
 						with open(json_file_path, "w") as json_file:
 							json.dump(material_json, json_file, indent=4, cls=BlenderEncoder)
 							self.report({'INFO'}, f"Material successfully saved to '{json_file_path}'")
+					else:
+						self.report({'WARNING'}, 'Invalid file path. Please update Scene Output folder.')
+						return {'CANCELLED'}
 			else:
 				self.report({'WARNING'}, 'No active material to copy: Please select an object and try again')
 					
@@ -65,21 +70,11 @@ class JB_MATERIALSHARING_OT_save_material_json_to_file(bpy.types.Operator):
 
 
 class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
-	bl_idname = "jb_nodesharing.copy_material"
+	bl_idname = "jb_materialsharing.copy_material"
 	bl_label = "Copy Material"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def execute(self, context):
-		# Get the active material
-		#active_material = context.active_object.active_material
-		#
-		#if active_material:
-		#	# Store the material as text in a property
-		#	context.scene.JB_MATERIALSHARING_copy_paste = str(active_material)
-		#	self.report({'INFO'}, 'Material copied successfully')
-		#else:
-		#	self.report({'WARNING'}, 'No active material to copy')
-		#
 		
 		# Example: Convert the active material to JSON
 		if context.active_object:
@@ -103,9 +98,19 @@ class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
 		if material.use_nodes:
 			node_tree = material.node_tree
 			nodes_data = []
+			
+			is_selection = False
+			
+			# Check if any nodes are selected
+			selected_nodes = [node for node in material.node_tree.nodes if node.select]
+			if selected_nodes:
+				nodes_to_copy = selected_nodes
+				is_selection = True
+			else:
+				nodes_to_copy = material.node_tree.nodes
 		
 			# Iterate through the nodes in the node tree
-			for node in node_tree.nodes:
+			for node in nodes_to_copy:
 				node_data = {
 					"name": node.name,
 					"type": node.bl_idname,
@@ -142,6 +147,7 @@ class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
 		
 			material_data = {
 				"name": material.name,
+				"selection": is_selection,
 				"nodes": nodes_data
 			}
 		
@@ -149,15 +155,10 @@ class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
 		else:
 			return None
 
-
-
-
-	
-
 					
 
 class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
-	bl_idname = "jb_nodesharing.paste_material_from_clipboard"
+	bl_idname = "jb_materialsharing.paste_material_from_clipboard"
 	bl_label = "Paste Material"
 	bl_options = {'REGISTER', 'UNDO'}
 	
@@ -167,23 +168,15 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 
 			# Get the JSON string from the clipboard in Blender
 			json_string_from_clipboard = context.window_manager.clipboard
-			
-			
-			# Attempt to parse JSON string representing material data
-			material_data_from_clipboard = json.loads(json_string_from_clipboard)
-			
-			# Call the function to create material from the retrieved data
-			create_material_from_json(context, material_data_from_clipboard)
-			
+						
 			try:
 				# Attempt to parse JSON string representing material data
 				material_data_from_clipboard = json.loads(json_string_from_clipboard)
 				
 				# Call the function to create material from the retrieved data
-				self.create_material_from_json(context, material_data_from_clipboard)
+				self.json_to_material(context, material_data_from_clipboard)
 				
-				self.report({'INFO'}, 'Material was successfully pasted!')
-				
+				self.report({'INFO'}, 'Material was successfully pasted!')				
 				return {'FINISHED'}
 						
 			except json.JSONDecodeError:
@@ -194,11 +187,9 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 			except ValueError as ve:
 				self.report({'WARNING'}, f"Error creating material: {ve}")
 				return {'CANCELLED'}
-				# Handle the specific ValueError, such as displaying a user-friendly error message
 			
 			except Exception as e:
 				self.report({'WARNING'}, f"Unexpected error: {e}")
-				print(e)
 				return {'CANCELLED'}
 
 		else:
@@ -206,12 +197,12 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 			return {'CANCELLED'}
 			
 			
-	def create_material_from_json(self, context, material_data):
+	def json_to_material(self, context, material_data):
 		if not isinstance(material_data, dict):
 			raise ValueError("Invalid material data. Expected a dictionary.")
 			
 		# Check for the presence of required keys
-		required_keys = ["name", "nodes"]
+		required_keys = ["name", "nodes", "selection"]
 		for key in required_keys:
 			if key not in material_data:
 				raise ValueError(f"Invalid material format. Missing key '{key}' in material data.")
@@ -219,15 +210,16 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 		# Check if there's an active object with a material slot
 		if context.active_object and context.active_object.type == 'MESH' and context.active_object.material_slots:
 			
-			# Clear all nodes in the node tree
-			context.active_object.active_material.node_tree.nodes.clear()
+			if not material_data.get("selection", False):
 			
-			# Create a new material or use the first material slot's material
-			# material = context.active_object.material_slots[0].material
-			bpy.ops.material.new()
+				# Since a complete material is being pasted,
+				# we clear nodes and rename the active material:
+				
+				context.active_object.active_material.node_tree.nodes.clear()
+				context.active_object.active_material.name = material_data.get("name", "Pasted Material")
+				
 			material = context.active_object.active_material
-			material.name = material_data.get("name", "Material")
-			
+				
 			nodes_data = material_data.get("nodes", [])
 			node_dict = {}
 			
