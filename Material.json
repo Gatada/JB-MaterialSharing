@@ -1,25 +1,55 @@
 {
-    "name": "Material",
+    "name": "Yellow Stone",
+    "selection": false,
     "nodes": [
+        {
+            "name": "Material Output",
+            "type": "ShaderNodeOutputMaterial",
+            "location": [
+                300.0,
+                300.0
+            ],
+            "inputs": {
+                "Surface": {
+                    "links": [
+                        {
+                            "from_node": "Principled BSDF",
+                            "from_socket": "BSDF"
+                        }
+                    ]
+                },
+                "Volume": {
+                    "links": []
+                },
+                "Displacement": {
+                    "links": [],
+                    "default_value": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "Thickness": {
+                    "links": [],
+                    "default_value": 0.0
+                }
+            },
+            "outputs": {}
+        },
         {
             "name": "Principled BSDF",
             "type": "ShaderNodeBsdfPrincipled",
             "location": [
-                179.88685607910156,
-                518.0399169921875
+                10.0,
+                300.0
             ],
             "inputs": {
                 "Base Color": {
-                    "links": [
-                        {
-                            "from_node": "Image Texture",
-                            "from_socket": "Color"
-                        }
-                    ],
+                    "links": [],
                     "default_value": [
                         0.8000000715255737,
-                        0.015348395332694054,
-                        0.02502802386879921,
+                        0.4289426803588867,
+                        0.08846181631088257,
                         1.0
                     ]
                 },
@@ -46,7 +76,7 @@
                 },
                 "Subsurface IOR": {
                     "links": [],
-                    "default_value": 1.0099999904632568
+                    "default_value": 1.399999976158142
                 },
                 "Subsurface Anisotropy": {
                     "links": [],
@@ -58,7 +88,7 @@
                 },
                 "Specular": {
                     "links": [],
-                    "default_value": 0.09545454382896423
+                    "default_value": 0.5
                 },
                 "Specular Tint": {
                     "links": [],
@@ -66,7 +96,7 @@
                 },
                 "Roughness": {
                     "links": [],
-                    "default_value": 0.2613636255264282
+                    "default_value": 0.5
                 },
                 "Anisotropic": {
                     "links": [],
@@ -82,7 +112,7 @@
                 },
                 "Sheen Tint": {
                     "links": [],
-                    "default_value": 0.0
+                    "default_value": 0.5
                 },
                 "Clearcoat": {
                     "links": [],
@@ -90,7 +120,7 @@
                 },
                 "Clearcoat Roughness": {
                     "links": [],
-                    "default_value": 0.0
+                    "default_value": 0.029999999329447746
                 },
                 "IOR": {
                     "links": [],
@@ -118,12 +148,7 @@
                     "default_value": 1.0
                 },
                 "Alpha": {
-                    "links": [
-                        {
-                            "from_node": "Image Texture",
-                            "from_socket": "Alpha"
-                        }
-                    ],
+                    "links": [],
                     "default_value": 1.0
                 },
                 "Normal": {
@@ -162,222 +187,6 @@
                             "to_node": "Material Output",
                             "to_socket": "Surface"
                         }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "Image Texture",
-            "type": "ShaderNodeTexImage",
-            "location": [
-                -270.0,
-                260.0
-            ],
-            "inputs": {
-                "Vector": {
-                    "links": [
-                        {
-                            "from_node": "Mapping",
-                            "from_socket": "Vector"
-                        }
-                    ],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                }
-            },
-            "outputs": {
-                "Color": {
-                    "links": [
-                        {
-                            "to_node": "Principled BSDF",
-                            "to_socket": "Base Color"
-                        }
-                    ],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Alpha": {
-                    "links": [
-                        {
-                            "to_node": "Principled BSDF",
-                            "to_socket": "Alpha"
-                        }
-                    ],
-                    "default_value": 0.0
-                }
-            }
-        },
-        {
-            "name": "Mapping",
-            "type": "ShaderNodeMapping",
-            "location": [
-                -511.9403076171875,
-                257.052001953125
-            ],
-            "inputs": {
-                "Vector": {
-                    "links": [
-                        {
-                            "from_node": "Texture Coordinate",
-                            "from_socket": "UV"
-                        }
-                    ],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Location": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Rotation": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Scale": {
-                    "links": [],
-                    "default_value": [
-                        1.0,
-                        1.0,
-                        1.0
-                    ]
-                }
-            },
-            "outputs": {
-                "Vector": {
-                    "links": [
-                        {
-                            "to_node": "Image Texture",
-                            "to_socket": "Vector"
-                        }
-                    ],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                }
-            }
-        },
-        {
-            "name": "Material Output",
-            "type": "ShaderNodeOutputMaterial",
-            "location": [
-                567.9325561523438,
-                464.37640380859375
-            ],
-            "inputs": {
-                "Surface": {
-                    "links": [
-                        {
-                            "from_node": "Principled BSDF",
-                            "from_socket": "BSDF"
-                        }
-                    ]
-                },
-                "Volume": {
-                    "links": []
-                },
-                "Displacement": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Thickness": {
-                    "links": [],
-                    "default_value": 0.0
-                }
-            },
-            "outputs": {}
-        },
-        {
-            "name": "Texture Coordinate",
-            "type": "ShaderNodeTexCoord",
-            "location": [
-                -753.880615234375,
-                245.26004028320312
-            ],
-            "inputs": {},
-            "outputs": {
-                "Generated": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Normal": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "UV": {
-                    "links": [
-                        {
-                            "to_node": "Mapping",
-                            "to_socket": "Vector"
-                        }
-                    ],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Object": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Camera": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Window": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
-                },
-                "Reflection": {
-                    "links": [],
-                    "default_value": [
-                        0.0,
-                        0.0,
-                        0.0
                     ]
                 }
             }

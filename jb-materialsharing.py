@@ -15,12 +15,12 @@
 
 bl_info = {
 	"author": "Johan Basberg",
-	"version": (0, 6, 4),
+	"version": (0, 8, 0),
 	"name": "Material Sharing using JSON",
 	"blender": (2, 80, 0),
 	"category": "Material",
 	"location": "TopBar > Edit",
-	"description": "Copying and pasting active material as JSON for easy sharing.",
+	"description": "Copy & Paste materials as JSON. Visit https://matdb.org.",
 }
 
 import bpy
@@ -36,6 +36,9 @@ class BlenderEncoder(json.JSONEncoder):
 			return list(obj)
 		elif isinstance(obj, Euler):
 			return list(obj)
+		elif isinstance(obj, bpy.types.NodeFrame):
+			# Extract relevant data for NodeFrame
+			return obj.name
 		return super().default(obj)
 
 
@@ -113,35 +116,48 @@ class JB_MATERIALSHARING_OT_copy_material(bpy.types.Operator):
 			for node in nodes_to_copy:
 				node_data = {
 					"name": node.name,
+					"label": node.label,
 					"type": node.bl_idname,
+					"parent": node.parent,
+					"hide": node.hide,
 					"location": (node.location.x, node.location.y),
-					"inputs": {},
-					"outputs": {}
+					"width": node.width,
 				}
-		
-				# Store information about inputs
-				for input_socket in node.inputs:
-					input_data = {
-						"links": [{"from_node": link.from_node.name, "from_socket": link.from_socket.name} for link in input_socket.links]
-					}
-		
-					# Check if the socket is connected
-					if hasattr(input_socket, "default_value"):
-						input_data["default_value"] = input_socket.default_value
-		
-					node_data["inputs"][input_socket.name] = input_data
-		
-				# Store information about outputs
-				for output_socket in node.outputs:
-					output_data = {
-						"links": [{"to_node": link.to_node.name, "to_socket": link.to_socket.name} for link in output_socket.links]
-					}
-		
-					# Check if the socket is connected
-					if hasattr(output_socket, "default_value"):
-						output_data["default_value"] = output_socket.default_value
-		
-					node_data["outputs"][output_socket.name] = output_data
+				
+				if (node.bl_idname == "NodeFrame"):
+					
+					# Frames have an initialised height
+					node_data["height"] = node.height # Only frames has a useful height
+					
+				else:
+					
+					# Material node has inputs and outputs, but height seem to always be 100.0
+					node_data["inputs"] = {}
+					node_data["outputs"] = {}
+					
+					# Store information about inputs
+					for input_socket in node.inputs:
+						input_data = {
+							"links": [{"from_node": link.from_node.name, "from_socket": link.from_socket.name} for link in input_socket.links]
+						}
+			
+						# Check if the socket is connected
+						if hasattr(input_socket, "default_value"):
+							input_data["default_value"] = input_socket.default_value
+			
+						node_data["inputs"][input_socket.name] = input_data
+			
+					# Store information about outputs
+					for output_socket in node.outputs:
+						output_data = {
+							"links": [{"to_node": link.to_node.name, "to_socket": link.to_socket.name} for link in output_socket.links]
+						}
+			
+						# Check if the socket is connected
+						if hasattr(output_socket, "default_value"):
+							output_data["default_value"] = output_socket.default_value
+			
+						node_data["outputs"][output_socket.name] = output_data
 		
 				nodes_data.append(node_data)
 		
@@ -198,6 +214,9 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 			
 			
 	def json_to_material(self, context, material_data):
+		
+		print("\nVisit https://matdb.org to copy paste more materials!\n")
+		
 		if not isinstance(material_data, dict):
 			raise ValueError("Invalid material data. Expected a dictionary.")
 			
@@ -210,11 +229,12 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 		# Check if there's an active object with a material slot
 		if context.active_object and context.active_object.type == 'MESH' and context.active_object.material_slots:
 			
+			data_type = "node selection"
 			if not material_data.get("selection", False):
 			
 				# Since a complete material is being pasted,
 				# we clear nodes and rename the active material:
-				
+				data_type = "full material"
 				context.active_object.active_material.node_tree.nodes.clear()
 				context.active_object.active_material.name = material_data.get("name", "Pasted Material")
 				
@@ -224,20 +244,42 @@ class JB_MATERIALSHARING_OT_paste_material_from_clipboard(bpy.types.Operator):
 			node_dict = {}
 			
 			# Create nodes
+			print("\nRestoring", data_type, "from JSON:\nClipboard ontains", len(nodes_data) ,"nodes.\n")
 			for node_data in nodes_data:
+
 				node_type = node_data.get("type", "")
-				node_name = node_data.get("name", "")
 				node_location = node_data.get("location", (0, 0))
-			
+
 				# Use shader.new_node_tree instead of ops.node.add for shader nodes
-				shader_tree = material.node_tree
-				new_node = shader_tree.nodes.new(type=node_type)
+				new_node = material.node_tree.nodes.new(type=node_type)
+				
 				new_node.location.x = node_location[0]
 				new_node.location.y = node_location[1]
+
+				new_node.name = node_data.get("name", "")				
+				new_node.label = node_data.get("label", "")
+				new_node.width = node_data.get("width", "")
+				new_node.hide = node_data.get("hide", False)
 				
-				node_dict[node_name] = new_node
+				print("Created new node:", new_node.label or new_node.name , "of type", node_type)
+				
+				if (node_type == "NodeFrame"):			
+					new_node.height = node_data.get("height", 100)					
+				
+				node_dict[new_node.name] = new_node
+
+			# Parent the nodes
+			print("Setting parents..")
+			for node_data in nodes_data:
+				node_name = node_data.get("name", "")
+				parent_node_name = node_data.get("parent")
+				if (parent_node_name):
+					parent_node = node_dict[parent_node_name]
+					if (parent_node != None):
+						node_dict[node_name].parent = parent_node
 			
 			# Connect nodes
+			print("Connecting nodes..")
 			for node_data in nodes_data:
 				from_node_name = node_data.get("name", "")
 				from_node = node_dict[from_node_name]
